@@ -80,6 +80,28 @@ INNER_MAPPING = {
 // Fill in your own translation mappings here (from phonetic to correct spelling)
 TRANSLATIONS = {
   };
+LIST_OUTER = [
+  0x07, 0x06, 0x18, 0x1C, 0x0C, 0x03,
+  0x1E, 0x0F, 0x1D, 0x17, 0x1B, 0x16,
+  0x02, 0x01, 0x08, 0x10, 0x1F, 0x14,
+];
+LIST_INNER = [
+  0x50, 0x54, 0x7F, 0x29, 0x4A, 0x2D,
+  0x5A, 0x4B, 0x69, 0x1A, 0x2C, 0x39,
+  0x4E, 0x2F, 0x7A, 0x3B, 0x6E, 0x7D,
+  0x5F, 0x6A, 0x2B, 0x2E, 0x05, 0x2A,
+];
+KEYS_OUTER = [
+ 'Q', 'W', 'E', 'R', 'T', 'Y',
+ 'A', 'S', 'D', 'F', 'G', 'H',
+ 'Z', 'X', 'C', 'V', 'B', 'N',
+ ];
+KEYS_INNER = [
+ '1', '2', '3', '4', '5', '6', '7',
+ 'q', 'w', 'e', 'r', 't', 'y', 'u',
+ 'a', 's', 'd', 'f', 'g', 'h', 'j',
+ 'z', 'x', 'c', 'v', 'b', 'n', 'm',
+ ];
 
 W = 20;
 H = 30;
@@ -129,9 +151,10 @@ function draw_character(ctx, x, y, c, scale=1.0) {
 
 class Character {
   constructor(vv=0,vc=0,swap=false) {
-   this.swap = swap;
-   this.set_outer_value(vv);
-   this.set_inner_value(vc);
+    this.verbatim_text = "";
+    this.swap = swap;
+    this.set_outer_value(vv);
+    this.set_inner_value(vc);
   }
   outer_value() {
     var v = 0;
@@ -170,6 +193,8 @@ class Character {
    this.i_br = (v & 0x40) != 0;
   }
   is_blank() {
+    if(this.verbatim_text != "")
+      return false;
     return this.outer_value() == 0 && this.inner_value() == 0;
   }
   outer_phoneme() {
@@ -181,6 +206,7 @@ class Character {
     return v === undefined ? "[]" : v;
   }
   get_phoneme_pair() {
+   if(this.verbatim_text != "") return this.verbatim_text;
    if( this.is_blank() ) {
      return " ";
    }
@@ -192,26 +218,37 @@ class Character {
    }
   }
   encode() {
-   if( this.is_blank() ) {
-     return " ";
-   }
-   return this.inner_value() + (this.swap ? "/" : "-") + this.outer_value();
+    if(this.verbatim_text != "" ) {
+      return "'"+this.verbatim_text+"'";
+    }
+    if( this.is_blank() ) {
+      return " ";
+    }
+    return this.inner_value() + (this.swap ? "/" : "-") + this.outer_value();
   }
   decode_from(s) {
-   if(s != " ") {
-     var v = s.split('--');
-     if(v.length == 1) {
-       v = s.split('-');
-     }
-     if(v.length == 2) {
-       this.swap = false;
-     }
-     else {
-       v = s.split('/');
-       this.swap = true;
-     }
-     this.set_inner_value(0 + v[0]);
-     this.set_outer_value(0 + v[1]);
+    if( s[0] == '\'') {
+      s = s.substring(1, s.length - 1);
+      this.verbatim_text = s;
+    }
+    else if(s != " ") {
+      var v = s.split('--');
+      if(v.length == 1) {
+        v = s.split('-');
+      }
+      if(v.length == 2) {
+        this.swap = false;
+      }
+      else {
+        v = s.split('/');
+        this.swap = true;
+      }
+      this.set_inner_value(0 + v[0]);
+      this.set_outer_value(0 + v[1]);
+   }
+   else {
+    this.verbatim_text = "";
+    this.swap = false;
    }
   }
 }
@@ -222,27 +259,41 @@ function update_entry(ch) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   var scale = 10.0;
   {
-	  var SX = W*scale / 2;
-	  var SY = H*scale / 5;
-    ctx.fillText("1", SX*0.5  , SY*0.5-5);
-    ctx.fillText("2", SX*1.0+5, SY*0.5  );
-    ctx.fillText("3", SX*1.5  , SY*0.5-5);
+    if( document.getElementById('input_mode-text').checked )
+    {
+      // No draw
+    }
+    else
+    {
+	    var SX = W*scale / 2;
+	    var SY = H*scale / 5;
+      if( document.getElementById('input_mode-strokes').checked )
+      {
+        ctx.fillText("1", SX*0.5  , SY*0.5-5);
+        ctx.fillText("2", SX*1.0+5, SY*0.5  );
+        ctx.fillText("3", SX*1.5  , SY*0.5-5);
 
-    ctx.fillText("Q", SX*0.5  , SY*1.5-5);
-    ctx.fillText("E", SX*1.5  , SY*1.5-5);
-    
-    ctx.fillText("A", SX*0.0+5, SY*2.5  );
+        ctx.fillText("Q", SX*0.5  , SY*1.5-5);
+        ctx.fillText("E", SX*1.5  , SY*1.5-5);
+        
+        ctx.fillText("A", SX*0.0+5, SY*2.5  );
 
-    ctx.fillText("S", SX*0.5  , SY*3.5-5);
-    ctx.fillText("D", SX*1.5  , SY*3.5-5);
+        ctx.fillText("S", SX*0.5  , SY*3.5-5);
+        ctx.fillText("D", SX*1.5  , SY*3.5-5);
 
-    ctx.fillText("Z", SX*0.5  , SY*4.5+10);
-    ctx.fillText("X", SX*1.0+5, SY*4.5  );
-    ctx.fillText("C", SX*1.5  , SY*4.5+10);
+        ctx.fillText("Z", SX*0.5  , SY*4.5+10);
+        ctx.fillText("X", SX*1.0+5, SY*4.5  );
+        ctx.fillText("C", SX*1.5  , SY*4.5+10);
 
-    ctx.fillText("F", SX*1.0-9, SY*4.75);
+        ctx.fillText("F", SX*1.0-9, SY*4.75);
+      }
+      else if( document.getElementById('input_mode-glyphs').checked )
+      {
+        ctx.fillText("J", SX*1.0-9, SY*4.75);
+      }
+      draw_character(ctx, 0, 0, ch, scale);
+    }
   }
-  draw_character(ctx, 0, 0, ch, scale);
   document.getElementById("current").innerHTML = ch.get_phoneme_pair() + "&nbsp;";
 }
 var insert_pos = 0;
@@ -269,17 +320,46 @@ function update_rendered() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   x = 2;
   y = 0;
-  var line_offset = 0;
   var prev_blank = false;
+  var char_positions = [];
+  var char_widths = [];
+  ctx.font = (H/2|0)+"px Arial";
   for(i in text) {
     c = text[i];
+    // If we've reached a non-blank character, and will be overflowing the canvas - newline
     if( !c.is_blank() ) {
-      if( x+(W+2) >= canvas.width ) {
+      var w;
+      if( c.verbatim_text != "" ) {
+        txt_size = ctx.measureText(c.verbatim_text);
+        w = txt_size.width;
+      }
+      else {
+        w = (W+2);
+      }
+      if( x+w >= canvas.width ) {
         x = 2;
         y += H+2;
-        line_offset = (i|0)+1;
       }
-      draw_character(ctx, x, y, c);
+    }
+    // Save the position
+    char_positions.push([x,y]);
+    if( !c.is_blank() ) {
+      // Draw a non-blank character
+      if( c.verbatim_text != "" ) {
+        ctx.strokeStyle = "#000000";
+        ctx.fillStyle = "#000000";
+        txt_size = ctx.measureText(c.verbatim_text);
+        ctx.fillText(c.verbatim_text, x, y+H-3);
+        x += txt_size.width;
+        console.log(c.verbatim_text, txt_size);
+      }
+      else {
+        draw_character(ctx, x, y, c);
+        x += (W+2);
+      }
+    }
+    else {
+      x += W/2;
     }
     if( i*2 == insert_pos ) {
       output += '|';
@@ -287,20 +367,21 @@ function update_rendered() {
     if( i*2 + 1 == insert_pos ) {
       output += '<u>'
     }
-    output += c.get_phoneme_pair()+":";
+    output += c.get_phoneme_pair();
     if( i*2 + 1 == insert_pos ) {
       output += '</u>'
     }
+    output += ":";
     encoded += c.encode() + ",";
-    x += (W+2);
+    char_widths.push( x - char_positions[char_positions.length-1][0] );
     if(c.is_blank() && prev_blank) {
       x = 2;
       y += H+2;
       output += "<br/>";
-      line_offset = (i|0)+1;
     }
     prev_blank = c.is_blank();
   }
+  char_positions.push([x,y]);
   if(text.length * 2 == insert_pos ) {
     output += '|';
   }
@@ -312,20 +393,21 @@ function update_rendered() {
   ctx.strokeStyle = "#000000";
 	ctx.lineWidth = 1;
 	ctx.beginPath();
-  x = 2 + ((insert_pos/2|0) - line_offset) * (W+2);
+  x = char_positions[insert_pos/2|0][0];
+  y = char_positions[insert_pos/2|0][1];
   ctx.moveTo(x,y + H);
   if( insert_pos % 2 == 0 ) {
 	  ctx.lineTo(x, y);
   }
   else {
-	  ctx.lineTo(x + W, y + H);
+	  ctx.lineTo(x + char_widths[(insert_pos/2|0)], y + H);
   }
   ctx.stroke();
 }
-
 function translate(text) {
   text = text.replace("<u>", "");
   text = text.replace("</u>", "");
+  text = text.replace("|", "");
   ents = text.split(" :");
   var rv = "";
   for(i in ents) {
@@ -351,25 +433,79 @@ function translate(text) {
 
 var current_ch = new Character();
 function handle_keyboard_event(ev) {
-  if( ev.key == '1' ) { current_ch.o_tl = !current_ch.o_tl; }
-  if( ev.key == '2' ) { current_ch.i_tm = !current_ch.i_tm; }
-  if( ev.key == '3' ) { current_ch.o_tr = !current_ch.o_tr; }
+  // Space: Commit the current character and move on
+  if( ev.key == ' ' ) {
+    commit_char(current_ch);
+    current_ch = new Character();
+    update_entry(current_ch);
+    return
+  }
+  // Backtick: Switch modes
+  if( ev.key == '`' && (!document.getElementById('input_mode-text').checked || current_ch.is_blank()) ) {
+    if( document.getElementById('input_mode-strokes').checked ) {
+      document.getElementById('input_mode-glyphs').checked = true;
+    }
+    else if( document.getElementById('input_mode-glyphs').checked ) {
+      document.getElementById('input_mode-strokes').checked = true;
+    }
+    else {
+      // Fallback
+      document.getElementById('input_mode-strokes').checked = true;
+    }
+    document.getElementById('input_mode-text').checked = false;
+    update_entry(current_ch);
+    return;
+  }
+  if( ev.key == '~' && current_ch.is_blank() ) {
+    document.getElementById('input_mode-text').checked = !document.getElementById('input_mode-text').checked;
+    update_entry(current_ch);
+    return;
+  }
 
-  if( ev.key == 'q' ) { current_ch.i_tl = !current_ch.i_tl; }
-  //if( ev.key == 'w' ) { current_ch.i_m  = !current_ch.i_m ; }
-  if( ev.key == 'e' ) { current_ch.i_tr = !current_ch.i_tr; }
+  // Raw text mode: Append to the verbatim text
+  if( document.getElementById('input_mode-text').checked )
+  {
+    current_ch.verbatim_text += ev.key;
+  }
+  else
+  {
+    // Stroke input mode: Toggle the status of various strokes
+    if( document.getElementById('input_mode-strokes').checked )
+    {
+      if( ev.key == '1' ) { current_ch.o_tl = !current_ch.o_tl; }
+      if( ev.key == '2' ) { current_ch.i_tm = !current_ch.i_tm; }
+      if( ev.key == '3' ) { current_ch.o_tr = !current_ch.o_tr; }
 
-  if( ev.key == 'a' ) { current_ch.o_l  = !current_ch.o_l ; }
-  if( ev.key == 's' ) { current_ch.i_bl = !current_ch.i_bl; }
-  if( ev.key == 'd' ) { current_ch.i_br = !current_ch.i_br; }
+      if( ev.key == 'q' ) { current_ch.i_tl = !current_ch.i_tl; }
+      //if( ev.key == 'w' ) { current_ch.i_m  = !current_ch.i_m ; }
+      if( ev.key == 'e' ) { current_ch.i_tr = !current_ch.i_tr; }
 
-  if( ev.key == 'z' ) { current_ch.o_bl = !current_ch.o_bl; }
-  if( ev.key == 'x' ) { current_ch.i_bm = !current_ch.i_bm; }
-  if( ev.key == 'c' ) { current_ch.o_br = !current_ch.o_br; }
+      if( ev.key == 'a' ) { current_ch.o_l  = !current_ch.o_l ; }
+      if( ev.key == 's' ) { current_ch.i_bl = !current_ch.i_bl; }
+      if( ev.key == 'd' ) { current_ch.i_br = !current_ch.i_br; }
 
-  if( ev.key == 'f' ) { current_ch.swap = !current_ch.swap; }
+      if( ev.key == 'z' ) { current_ch.o_bl = !current_ch.o_bl; }
+      if( ev.key == 'x' ) { current_ch.i_bm = !current_ch.i_bm; }
+      if( ev.key == 'c' ) { current_ch.o_br = !current_ch.o_br; }
 
-  if( ev.key == ' ' ) { commit_char(current_ch); current_ch = new Character(); }
+      if( ev.key == 'f' ) { current_ch.swap = !current_ch.swap; }
+    }
+    // Glyph input mode: Set glyph components using hotkeys
+    if( document.getElementById('input_mode-glyphs').checked )
+    {
+      if( ev.key == 'k' ) { current_ch.swap = !current_ch.swap; }
+      for(i in KEYS_OUTER) {
+        if( ev.key == KEYS_OUTER[i] ) {
+          current_ch.set_outer_value(LIST_OUTER[i]);
+        }
+      }
+      for(i in KEYS_INNER) {
+        if( ev.key == KEYS_INNER[i] ) {
+          current_ch.set_inner_value(LIST_INNER[i]);
+        }
+      }
+    }
+  }
 
   update_entry(current_ch);
 }
@@ -379,6 +515,9 @@ function update_current_with_cursor() {
   }
   else {
     current_ch = new Character();
+  }
+  if( !current_ch.is_blank() ) {
+    document.getElementById('input_mode-text').checked = (current_ch.verbatim_text != "");
   }
   update_entry(current_ch);
   update_rendered();
@@ -417,6 +556,12 @@ function handle_keyboard_event_down(ev) {
   }
 
   if( ev.key == 'Backspace' ) {
+    if( document.getElementById('input_mode-text').checked && current_ch.verbatim_text != "" ) {
+      current_ch.verbatim_text = current_ch.verbatim_text.substring(0, current_ch.verbatim_text.length - 1);
+      update_entry(current_ch);
+      return;
+    }
+
     console.log(insert_pos);
     if( insert_pos % 2 == 1 ) {
       insert_pos -= 1;
@@ -436,10 +581,66 @@ function handle_keyboard_event_down(ev) {
 
   //console.log("KEY", ev.key);
 }
+function fill_reference_tables() {
+  body = "<tr>"
+  for(i in LIST_OUTER) {
+    if(i % 6 == 0 && i > 0) {
+      body += "</tr><tr>";
+    }
+    k = LIST_OUTER[i];
+    body += "<td><canvas id='outer_"+k+"' width=\"" + (2+W) + "\" height=\"" + (2+H) + "\"></canvas></td><td><sub style='color:grey;border:1px;'>" + KEYS_OUTER[i] + "</sub> " + OUTER_MAPPING[k] + "</td>";
+  }
+  body += "</tr>";
+  document.getElementById("mappings_outer").innerHTML = body;
+
+  body = "<tr>"
+  for(i in LIST_INNER) {
+    if(i % 6 == 0 && i > 0) {
+      body += "</tr><tr>";
+    }
+    k = LIST_INNER[i];
+    body += "<td><canvas id='inner_"+k+"' width=\"" + (2+W) + "\" height=\"" + (2+H) + "\"></canvas></td><td><sub style='color:grey;border:1px;'>" + KEYS_INNER[i] + "</sub> " + INNER_MAPPING[k] + "</td>";
+  }
+  body += "</tr>";
+  document.getElementById("mappings_inner").innerHTML = body;
+
+  for(i in LIST_OUTER) {
+    k = LIST_OUTER[i];
+    ctx = document.getElementById("outer_"+k).getContext("2d");
+    draw_character(ctx, 1,1, new Character(k, 0));
+  }
+  for(i in LIST_INNER) {
+    k = LIST_INNER[i];
+    ctx = document.getElementById("inner_"+k).getContext("2d");
+    draw_character(ctx, 1,1, new Character(0, k));
+  }
+}
+function init() {
+  if(window.location.hash) {
+    ents = window.location.hash.substring(1).split(',');
+    for(e in ents) {
+      if(ents[e].length == 0) continue;
+      ch = new Character();
+      ch.decode_from(ents[e]);
+      text.push(ch);
+    }
+    insert_pos = text.length*2;
+  }
+
+  fill_reference_tables();
+  update_entry(current_ch);
+  update_rendered();
+}
 --></script>
 </head>
 <body onkeypress="handle_keyboard_event(event)" onkeydown="handle_keyboard_event_down(event)">
-<div style="display:inline-block"><div>
+<div id="div-input_mode">
+  Input mode (Use ` to switch):
+  <input type="radio" name="input_mode" id="input_mode-strokes" value="stroke" checked>Strokes</input>
+  <input type="radio" name="input_mode" id="input_mode-glyphs"  value="glyph">Glyphs</input>
+  <input type="checkbox" name="input_mode" id="input_mode-text" value="text" >Verbatim Text (~)</input>
+</div>
+<div id="left" style="display:inline-block"><div>
  <canvas id="entry" width="200px" height="300px"></canvas>
  <div id="current">&nbsp;</div>
  <canvas id="rendered" width="1600px" height="200px"></canvas>
@@ -447,10 +648,10 @@ function handle_keyboard_event_down(ev) {
  <br/>
  <div id="translated">&nbsp;</div>
 </div></div>
-<div style="display:inline-block"><div>
-  <table id="mappings_outer">
+<div id="right" style="display:inline-block"><div>
+  <table id="mappings_outer" style="display:inline-block">
   </table>
-  <table id="mappings_inner">
+  <table id="mappings_inner" style="display:inline-block">
   </table>
 </div></div>
 <div style="display:inline-block"><div></div>
@@ -468,64 +669,8 @@ function handle_keyboard_event_down(ev) {
     <li>To quickly clear, just delete the `#` part of the URL and refresh</li>
   </ul>
 </div></div>
-<script>
-update_entry(current_ch);
-{
-  LIST_OUTER = [
-    0x07, 0x06, 0x18, 0x1C, 0x0C, 0x03,
-    0x1E, 0x0F, 0x1D, 0x17, 0x1B, 0x16,
-    0x02, 0x01, 0x08, 0x10, 0x1F, 0x14,
-  ];
-  LIST_INNER = [
-    0x50, 0x54, 0x7F, 0x29, 0x4A, 0x2D,
-    0x5A, 0x4B, 0x69, 0x1A, 0x2C, 0x39,
-    0x4E, 0x2F, 0x7A, 0x3B, 0x6E, 0x7D,
-    0x5F, 0x6A, 0x2B, 0x2E, 0x05, 0x2A,
-  ];
-  body = "<tr>"
-  for(i in LIST_OUTER) {
-    if(i % 6 == 0 && i > 0) {
-      body += "</tr><tr>";
-    }
-    k = LIST_OUTER[i];
-    body += "<td><canvas id='outer_"+k+"' width=\"" + (2+W) + "\" height=\"" + (2+H) + "\"></canvas></td><td>" + OUTER_MAPPING[k] + "</td>";
-  }
-  body += "</tr>";
-  document.getElementById("mappings_outer").innerHTML = body;
-
-  body = "<tr>"
-  for(i in LIST_INNER) {
-    if(i % 6 == 0 && i > 0) {
-      body += "</tr><tr>";
-    }
-    k = LIST_INNER[i];
-    body += "<td><canvas id='inner_"+k+"' width=\"" + (2+W) + "\" height=\"" + (2+H) + "\"></canvas></td><td>" + INNER_MAPPING[k] + "</td>";
-  }
-  body += "</tr>";
-  document.getElementById("mappings_inner").innerHTML = body;
-
-  for(i in LIST_OUTER) {
-    k = LIST_OUTER[i];
-    ctx = document.getElementById("outer_"+k).getContext("2d");
-    draw_character(ctx, 1,1, new Character(k, 0));
-  }
-  for(i in LIST_INNER) {
-    k = LIST_INNER[i];
-    ctx = document.getElementById("inner_"+k).getContext("2d");
-    draw_character(ctx, 1,1, new Character(0, k));
-  }
-}
-if(window.location.hash) {
-  ents = window.location.hash.substring(1).split(',');
-  for(e in ents) {
-    if(ents[e].length == 0) continue;
-    ch = new Character();
-    ch.decode_from(ents[e]);
-    text.push(ch);
-  }
-  insert_pos = text.length*2;
-  update_rendered();
-}
-</script>
+<script><!--
+init();
+--></script>
 </body>
 </html>

@@ -5,6 +5,8 @@ THIS REPOSITORY CONTAINS SPOILERS!
 
 Only look at the tool if you have page 54 of the in-game manual, otherwise you'll be mega-spoiled
 
+Rendered: https://htmlpreview.github.io/?https://github.com/thepowersgang/tunic_text/blob/master/tunic_text.html
+
 ## Using
 There's instructions on the page itself.
 
