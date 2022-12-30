@@ -97,10 +97,10 @@ KEYS_OUTER = [
  'Z', 'X', 'C', 'V', 'B', 'N',
  ];
 KEYS_INNER = [
- '1', '2', '3', '4', '5', '6', '7',
- 'q', 'w', 'e', 'r', 't', 'y', 'u',
- 'a', 's', 'd', 'f', 'g', 'h', 'j',
- 'z', 'x', 'c', 'v', 'b', 'n', 'm',
+ '1', '2', '3', '4', '5', '6',
+ 'q', 'w', 'e', 'r', 't', 'y',
+ 'a', 's', 'd', 'f', 'g', 'h',
+ 'z', 'x', 'c', 'v', 'b', 'n',
  ];
 
 W = 20;
@@ -493,7 +493,7 @@ function handle_keyboard_event(ev) {
     // Glyph input mode: Set glyph components using hotkeys
     if( document.getElementById('input_mode-glyphs').checked )
     {
-      if( ev.key == 'k' ) { current_ch.swap = !current_ch.swap; }
+      if( ev.key == 'j' ) { current_ch.swap = !current_ch.swap; }
       for(i in KEYS_OUTER) {
         if( ev.key == KEYS_OUTER[i] ) {
           current_ch.set_outer_value(LIST_OUTER[i]);
@@ -631,9 +631,13 @@ function init() {
   update_entry(current_ch);
   update_rendered();
 }
+function onresize(event) {
+  document.getElementById('rendered').width = window.innerWidth - 20;
+  update_rendered();
+}
 --></script>
 </head>
-<body onkeypress="handle_keyboard_event(event)" onkeydown="handle_keyboard_event_down(event)">
+<body onkeypress="handle_keyboard_event(event)" onkeydown="handle_keyboard_event_down(event)" onresize="onresize(event)">
 <div id="div-input_mode">
   Input mode (Use ` to switch):
   <input type="radio" name="input_mode" id="input_mode-strokes" value="stroke" checked>Strokes</input>
@@ -643,7 +647,7 @@ function init() {
 <div id="left" style="display:inline-block"><div>
  <canvas id="entry" width="200px" height="300px"></canvas>
  <div id="current">&nbsp;</div>
- <canvas id="rendered" width="1600px" height="200px"></canvas>
+ <canvas id="rendered" width="1600px" height="200px" style="border: 1px solid #000;"></canvas>
  <div id="phonetic">&nbsp;</div>
  <br/>
  <div id="translated">&nbsp;</div>
@@ -671,6 +675,7 @@ function init() {
 </div></div>
 <script><!--
 init();
+onresize(undefined);
 --></script>
 </body>
 </html>
