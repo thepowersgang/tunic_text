@@ -76,9 +76,10 @@ Shop: "Hole in Time" (ho.:l: :in: :tii:m)
 -->
 <html>
 <head>
-  <title>Tunic Text Translator</title>
+<title>Tunic Text Translator</title>
 <script><!--
 
+// The outside ring
 OUTER_MAPPING = {
   0x00: "",
   0x07: "a",  // a.e - h[a]v[e]
@@ -100,6 +101,7 @@ OUTER_MAPPING = {
   0x1F: "o.", // her[o]
   0x14: "air", // f[air]ies
   };
+// The inside components
 INNER_MAPPING = {
   0x00: "",
   0x50: "m",
@@ -130,6 +132,7 @@ INNER_MAPPING = {
   0x05: "w",
   0x2A: "l",
   };
+// Fill in your own translation mappings here (from phonetic to correct spelling)
 TRANSLATIONS = {
   "see:ker": "seeker",
   "the.:m": "them",
@@ -173,7 +176,6 @@ TRANSLATIONS = {
   "iS": "is",
   };
 
-  
 LIST_OUTER = [
   0x07, 0x06, 0x18, 0x1C, 0x0C, 0x03,
   0x1E, 0x0F, 0x1D, 0x17, 0x1B, 0x16,
@@ -239,16 +241,21 @@ function draw_character_raw(ctxt, x, y, c, scale, colours) {
   }
 }
 function draw_character(ctx, x, y, c, scale=1.0) {
-  draw_character_raw(ctx, x, y, new Character(0xff,0xff,1), scale, ["#CCCCCC", "#CCCCCC", "#CCCCCC"]);
+  draw_character_raw(ctx, x, y, new Character(0xff,0xff,1), scale, ["#EEE", "#EEE", "#EEE"]);
   draw_character_raw(ctx, x, y, c, scale, ["#000000", "#FF0000", "#0000FF"]);
 }
 
 class Character {
-  constructor(vv=0,vc=0,swap=false) {
+  constructor(ov=0,iv=0,swap=false) {
     this.verbatim_text = "";
     this.swap = swap;
-    this.set_outer_value(vv);
-    this.set_inner_value(vc);
+    this.set_outer_value(ov);
+    this.set_inner_value(iv);
+  }
+  clone() {
+    var rv = new Character(this.outer_value(), this.inner_value(), this.swap);
+    rv.verbatim_text = this.verbatim_text;
+    return rv;
   }
   outer_value() {
     var v = 0;
@@ -394,12 +401,13 @@ var insert_pos = 0;
 var text = [];
 function commit_char(ch) {
   if(insert_pos % 2 == 0) {
-     text.splice(insert_pos/2|0, 0, ch);
+    text.splice(insert_pos/2|0, 0, ch);
   }
   else {
     text[insert_pos/2|0] = ch;
   }
   insert_pos += 2;
+  insert_pos = (insert_pos/2|0)*2;
   if( insert_pos > text.length*2 ) {
     insert_pos = text.length*2;
   }
@@ -590,12 +598,23 @@ function handle_keyboard_event(ev) {
       if( ev.key == 'j' ) { current_ch.swap = !current_ch.swap; }
       for(i in KEYS_OUTER) {
         if( ev.key == KEYS_OUTER[i] ) {
-          current_ch.set_outer_value(LIST_OUTER[i]);
+          if( current_ch.outer_value() == LIST_OUTER[i]) {
+            current_ch.set_outer_value(0);
+          }
+          else {
+            current_ch.set_outer_value(LIST_OUTER[i]);
+          }
         }
       }
       for(i in KEYS_INNER) {
         if( ev.key == KEYS_INNER[i] ) {
-          current_ch.set_inner_value(LIST_INNER[i]);
+          console.log(ev.key, LIST_INNER[i]);
+          if( current_ch.inner_value() == LIST_INNER[i]) {
+            current_ch.set_inner_value(0);
+          }
+          else {
+            current_ch.set_inner_value(LIST_INNER[i]);
+          }
         }
       }
     }
@@ -605,7 +624,7 @@ function handle_keyboard_event(ev) {
 }
 function update_current_with_cursor() {
   if( insert_pos % 2 == 1 ) {
-    current_ch = text[insert_pos/2|0];
+    current_ch = text[insert_pos/2|0].clone();
   }
   else {
     current_ch = new Character();
@@ -645,7 +664,7 @@ function handle_keyboard_event_down(ev) {
         text.splice(insert_pos/2, 1);
       }
     }
-      update_current_with_cursor();
+    update_current_with_cursor();
     return;
   }
 
